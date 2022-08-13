@@ -1,3 +1,10 @@
+# Insert Module vpc
+module "vpc_dev" {
+    source = "../vpc_securities"
+
+}
+
+
 # We will get the latest AMI EC2 instance
 data "aws_ami" "amzlinux2" {
   most_recent      = true
@@ -24,18 +31,21 @@ data "aws_ami" "amzlinux2" {
   }
 }
 
-module "ec2-bastion-security-group" {
+module "ec2_bastion_security_group" {
     source = "terraform-aws-modules/security-group/aws//modules/http-80"
     version = "4.9.0"
     name        = "dev-public-bastion-sg"
     description = "Security group for bastion, open ssh port 22 for everybodyHTTP ports open within VPC"
-    vpc_id      = ""
+    vpc_id = module.vpc_dev.vpc_id
 
     # Ingress Rules & CIDR Blocks
     ingress_rules = ["ssh-tcp"]
     ingress_cidr_blocks = ["0.0.0.0/0"]
     # Egress Rule - all-all open
     egress_rules = ["all-all"]
+    depends_on = [
+    module.vpc_dev
+  ]
 }
 
 module "ec2_instance" {
@@ -45,7 +55,15 @@ module "ec2_instance" {
   ami                    = data.aws_ami.amzlinux2.id
   instance_type          = var.instance_type
   key_name               = var.instance_keypair
-  subnet_id              = ""
-  vpc_security_group_ids = []
-  tags = local.common_tags
+  subnet_id              = module.vpc_dev.public_subnets[0]
+  vpc_security_group_ids = [module.ec2_bastion_security_group.security_group_id]
+  tags = {
+    owners = "hans"
+    environment = "dev"
+  }
+  depends_on = [
+    module.ec2_bastion_security_group,
+    module.vpc_dev
+
+  ]
 }
