@@ -17,3 +17,9 @@ variable "environment" {
     type = string
     default = "dev"
 }
+
+variable "business_division" {
+    description = "Bisness Division this infractructure belongs"
+    type = string
+    default = "Home Practive"
+}
